@@ -1,0 +1,165 @@
+----------------------------------------------------------------------------------------------------------------------
+# Not inventory, remote passwordless ssh connection
+
+[clients]
+control01 ansible_host=192.168.45.10 ansible_connection=ssh ansible_ssh_port=22 ansible_ssh_private_key_file=/home/vagrant/.ssh/id_rsa ansible_user=vagrant
+#vagrant-client01 ansible_host=10.10.40.94 ansible_ssh_private_key_file='.vagrant/machines/vagrant-client01/virtualbox/private_key' ansible_connection=local ansible_ssh_user='vagrant'
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+---------------------------------------------------------------------------------------------------------------------- 
+# Running a playbook in dry-run mode
+ansible-playbook playbooks/PLAYBOOK_NAME.yml --check
+
+ansible hostname -m setup
+ansible -m setup test-instance -i inventory  | grep ansible_distribution
+sudo ansible all -m setup -i "`hostname`," --connection=local -a "filter=ansible_distribution*"
+
+# Specifying a user
+ansible-playbook playbooks/atmo_playbook.yml --user atmouser
+
+# Using a specific SSH private key
+ansible -m ping hosts --private-key=~/.ssh/keys/id_rsa -u centos
+
+# Passing Variables via CLI
+ansible-playbook playbooks/atmo_playbook.yml -e "ATMOUSERNAME=atmouser"
+
+# Modify file
+ansible all -m lineinfile -a "dest=/etc/group regexp='^(users:x:100:)(.*)' line='\1ldapusername,\2' state=present backrefs=yes"
+
+ansible-playbook release.yml --extra-vars "version=1.23.45 other_variable=foo"
+ansible-playbook arcade.yml --extra-vars '{"pacman":"mrs","ghosts":["inky","pinky","clyde","sue"]}'
+ansible-playbook release.yml --extra-vars "@some_file.json"
+
+# Passing variables on the command line
+~/..ansible/roles ->ansible role default dir
+/etc/ansible/hosts
+#shell variable ANSIBLE_HOST
+
+# Inventory - Examples
+singular1->hostname
+ansible-inventory --inventory-file=inventory --host singular1
+ansible-inventory --inventory-file=inventory --list
+ansible-inventory --inventory-file=inventory --graph
+
+$ ansible -i inventory client1.example.lan -m setup | grep ansible_user
+$ ansible -i inventory client1.example.lan -m setup -a "filter=facter_*"
+$ ansible client1.example.lan -i inventory -m setup | grep ansible_default_ipv4.gateway
+$ ansible -i inventory client1.example.lan -m ping
+$ ansible -i inventory client1.example.lan -m ping -u root
+$ ansible -i inventory "client*" -m yum -a 'name=httpd state=absent'
+$ ansible -i inventory "client*" -a "yum update"
+$ ansible -i inventory "client*" -a "uname -a"
+$ ansible -i inventory "client*" -m yum -a 'name=* state=latest'
+$ ansible -i inventory client1.example.lan -m shell -a "yum list installed | grep docker"
+$ ansible -i inventory client1.example.lan -m shell -a "hostnamectl"
+$ ansible -i inventory client1.example.lan -m shell -a "cat /etc/hosts"
+$ ansible -i inventory client1.example.lan -m shell -a "ifconfig"
+$ ansible -i inventory client1.example.lan -m shell -a "whoami"
+$ ansible -i inventory client1.example.lan -m shell -a "nmcli d status"
+$ ansible -i inventory client1.example.lan -m shell -a "sudo ifconfig -a"
+$ ansible -i inventory selinux1 -m shell -a "whoami"
+
+ansible -m debug -a 'var=hostvars' localhost
+ansible -m debug -a 'var=hostvars' localhost | grep inventory_hostname
+ansible -m debug -a 'var=hostvars' client1.example.lan -i inventory
+ansible -m debug -a 'var=hostvars' client1.example.lan -i inventory| grep inventory_hostname	
+
+ansible www.example.com -m service -a "name=sshd state=restarted" --sudo -K
+ansible www.example.com -m copy -a "src=/home/liquidat/tmp/test.yml dest=/home/liquidat/text.yaml"
+ansible www.example.com -m copy -a "src=/home/liquidat/tmp/test.yml dest=/home/liquidat/text.yaml"
+
+ansible-config view -> Displays the current config file
+ansible-config list -> List all current configs reading lib/constants.py and shows env and config file setting names
+
+ansible-playbook playbook.yml -v
+ansible-playbook playbook.yml -vv
+ansible-playbook playbook.yml -vvv
+
+ansible-playbook playbooks/PLAYBOOK_NAME.yml --limit "host1,host2"
+
+ansible-playbook --list-hosts /vagrant/deploy.yml
+ansible-playbook --list-tags /vagrant/deploy.yml
+ansible-playbook --syntax-check installnginx.yml 
+ansible-playbook -i hosts installnginx.yml 
+
+ansible-playbook deploy-gluster.yml --tags "inventoryvars"
+ansible-playbook deploy-gluster.yml --skip-tags "inventoryvars"
+
+-----------------------------------------------------------------------------------------------------
+# run ansible role on command prompt
+
+roles:
+    - {role: 'apache', tags: 'apache'}
+
+ansible-playbook webserver.yml --tags "apache"
+
+-----------------------------------------------------------------------------------------------------
+
+
+ansible-playbook vagranthost -i hosts -b -k -u vagrant nginx.yml
+
+ansible-doc apt                             -> details of the apt module
+ansible-doc collection-namespace.plugin     -> details of the module from Galaxy collection
+ansible-doc --list                          -> plugin list
+
+ansible all --sudo --ask-sudo-pass -m raw -a 'sudo apt-get -y install python-simplejson
+ansible web -m apt -a "name=apache2 state=present" -> Installs httpd package on the [web] group within your Ansible inventory
+ansible all -m apt -a "name=bash=4.3 state=present" -> Install a certain version of Bash to every node
+ansible all -m apt -a "upgrade=dist" -> the target nodes to update all installed software
+ansible all -m yum -a "name=httpd state=present"
+ansible all -m yum -a "name=* state=latest"
+
+ansible <ansible group> -a "<shell command>"
+ansible mysql -a "reboot -now" -> reboot all the members of the mysql group
+ansible mysql -m service -a "name=mysql state=restarted" -> restart MySQL
+ansible mysql -m service -a "name=mysql state=stopped"
+ansible mysql -m service -a "name=mysql state=started"
+
+#-m ping - Use the "ping" module, which simply runs the ping command and returns the results
+#-s - Use "sudo" to run the commands
+#-k - Ask for a password rather than use key-based authentication
+#-u vagrant - Log into servers using user vagrant
+ansible vagranthost -i hosts -m ping -b -k -u vagrant
+ansible vagranthost -i hosts -b -k -u vagrant -m shell -a 'apt-get install nginx -y'
+ansible vagranthost -i hosts -b -k -u vagrant -m apt -a 'pkg=nginx state=installed update_cache=true'
+ansible vagranthost -i hosts -b -k -u vagrant -m apt -a 'pkg=nginx state=absent
+ansible scientific_linux -m ping  -k -u vagrant
+ansible scientific_linux -k  -u vagrant -m shell -a 'hostnamectl'
+ansible scientific_linux -b -u vagrant -m shell -a 'whoami'
+ansible scientific_linux -b -k -u  vagrant -m yum -a 'name=httpd state=latest'
+ansible scientific_linux -b -k -u vagrant -m yum -a 'name=httpd state=absent'
+ansible scientific_linux -b -k -u  vagrant -m yum -a 'name=* state=latest'
+ansible scientific_linux -b -k -u  vagrant -m yum -a 'name=* state=latest exclude=kernel*'
+
+ansible -i hosts local --connection=local -b --become-user=root -m shell -a 'apt-get install nginx' -> Run against a local server
+ansible -i hosts remote -b --become-user=root all -m shell -a 'apt-get install nginx' -> Run against a remote server
+
+ansible all -m user -a "name=gduffy" comment="Griff Duffy" group=users password="amadeuppassword" -> add a user named gduffy to a group called
+users on every node within your Ansible inventory
+ansible db -m user -a "name=gduffy" state=absent remove=yes"
+ansible all -m user -a "name=beth shell=/bin/ksh home=/mnt/externalhome
+
+ansible all -m user -a "name=meg generate_ssh_key=yes" -> create a user called Meg with an associated key
+ansible all -m copy -a "src=keys/id_rsa dest="/home/beth/.ssh/id_rsa mode=0600 ->attach a key to a specifed account
+ansible web_servers -m authorized_key -a "user=michael key="{{lookup('file', '/home/michael/.ssh/id_rsa.pub') }}" ->adds public key
+to all web servers defned within the Ansible inventory.
+
+Copy SSH key manually
+ansible <HOST_GROUP> -m authorized_key -a "user=root key='ssh-rsa AAAA...XXX == root@hostname'"
+
+ANSIBLE_VAULT_PASSWORD_FILE=~/.vault_pass.txt -> Ansible will automatically search for the password in that file
+ansible-vault create passwd.yml -> Create a new encrypted data file.Set the password for vault
+ansible-vault edit passwd.yml -> Edit encrypted file
+ansible-vault rekey passwd.yml -> Change password for encrypted file
+
+
+#Install ansible Debian/Ubuntu
+sudo apt-add-repository ppa:ansible/ansible
+sudo apt-get update
+sudo apt-get install ansible
+ansible --version
+
+#Install ansible Red Hat/CentOS
+sudo yum -y install https://dl.fedoraproject.org/pub/epel/epelrelease-latest-7.noarch.rpm
+sudo yum install ansible
+ansible --version
